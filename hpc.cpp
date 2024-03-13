@@ -56,7 +56,6 @@ namespace RAIL{
 
 
 char SkeletonPass::ID = 0;
-char SkeletonPass2::ID = 0;
 
 int main(){
     InitializeNativeTarget();
