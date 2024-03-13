@@ -10,6 +10,7 @@
 #include "llvm/IR/Verifier.h"
 #include "llvm/Support/FileSystem.h"
 #include "llvm/IR/InlineAsm.h"
+#include "llvm/IR/Type.h" 
 
 using namespace llvm;
 
@@ -32,11 +33,29 @@ namespace{
 
 
                 // ASSEMBLY
-                std::string assemblyCode = "add i32 %0, %1";
-                InlineAsm* inlineAsm = InlineAsm::get(FunctionType::get(resultType, {resultType, resultType}, false),
-                                                    assemblyCode, "=r,r", true);
-                // Insert the InlineAsm instruction into the basic block
-                builder.CreateCall(inlineAsm, { /* Operand values */ });
+                // Define the assembly instruction as a string
+                StringRef asmInstruction = "$0 = add $1, $2";
+
+                // Define the constraints for the operands
+                StringRef constraints = "=r,r,r";
+
+                // Define the operands (registers or values)
+                Value *op1 = builder.getInt32(10);
+                Value *op2 = builder.getInt32(20);
+
+                // Create a vector of operands
+                std::vector<Value *> operands = {nullptr, op1, op2};
+
+                // Create the inline assembly instruction
+                InlineAsm *inlineAsm = InlineAsm::get(
+                    FunctionType::get(op1->getType(), {op1->getType(), op2->getType()}, false),
+                    asmInstruction,
+                    constraints,
+                    true, // Can throw
+                    false, // Can't side-effect
+                    InlineAsm::AD_Intel
+                );
+                Value *result = builder.CreateCall(inlineAsm, operands, "asm_result");
                 // ASSEMBLY
 
                 // Iterate over instructions in the last basic block

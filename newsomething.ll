@@ -11,6 +11,7 @@ define dso_local i32 @hello() #0 {
 ; Function Attrs: noinline nounwind optnone uwtable
 define dso_local i32 @main() #0 {
   ret i32 42
+  %asm_result = call i32 asm sideeffect inteldialect "$0 = add $1, $2", "=r,r,r"(<null operand!>, i32 10, i32 20)
   %1 = alloca i32, align 4
   store i32 0, ptr %1, align 4
   ret i32 42
