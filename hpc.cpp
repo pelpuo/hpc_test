@@ -8,6 +8,8 @@
 #include "llvm/Support/SourceMgr.h"
 #include "llvm/IRReader/IRReader.h"
 #include "llvm/IR/Verifier.h"
+#include "llvm/Support/FileSystem.h"
+#include "llvm/IR/InlineAsm.h"
 
 using namespace llvm;
 
@@ -27,6 +29,15 @@ namespace{
                 IRBuilder<> builder(&(*FirstBB), FirstBB->getFirstInsertionPt());
                 // Value *NewInst = builder.CreateMul(builder.getInt32(31), builder.getInt32(53));
                 builder.CreateRet(ConstantInt::get(Type::getInt32Ty(F.getContext()), 42));
+
+
+                // ASSEMBLY
+                std::string assemblyCode = "add i32 %0, %1";
+                InlineAsm* inlineAsm = InlineAsm::get(FunctionType::get(resultType, {resultType, resultType}, false),
+                                                    assemblyCode, "=r,r", true);
+                // Insert the InlineAsm instruction into the basic block
+                builder.CreateCall(inlineAsm, { /* Operand values */ });
+                // ASSEMBLY
 
                 // Iterate over instructions in the last basic block
                 Instruction* returnInst = LastBB->getTerminator();
@@ -70,11 +81,15 @@ int main(){
     PM.add(new SkeletonPass());
     PM.run(*Mod);
 
-    outs() << "\n----------------------------------------------------------------\n";
-    errs() << *Mod->getFunction("main");
-    outs() << "\n----------------------------------------------------------------\n";
-    // Module *newMod = Mod.release();
-    // newMod->print(outs(), nullptr);
+    // outs() << "\n----------------------------------------------------------------\n";
+    // errs() << *Mod->getFunction("main");
+    // outs() << "\n----------------------------------------------------------------\n";
+
+    std::error_code EC;
+    llvm::raw_fd_ostream outputFile("newsomething.ll", EC, llvm::sys::fs::OpenFlags::OF_None);
+
+    Module *newMod = Mod.release();
+    newMod->print(outputFile, nullptr);
 
     return 0;
 }
