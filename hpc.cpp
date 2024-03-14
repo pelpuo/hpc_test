@@ -29,39 +29,93 @@ namespace{
                 // errs() << "I am in main" << "\n";
                 IRBuilder<> builder(&(*FirstBB), FirstBB->getFirstInsertionPt());
                 // Value *NewInst = builder.CreateMul(builder.getInt32(31), builder.getInt32(53));
-                builder.CreateRet(ConstantInt::get(Type::getInt32Ty(F.getContext()), 42));
+                // builder.CreateRet(ConstantInt::get(Type::getInt32Ty(F.getContext()), 42));
 
+
+
+                FunctionType *printfFuncType = FunctionType::get(builder.getInt32Ty(), {builder.getPtrTy()}, true);
+                Function *printfFunc = Function::Create(printfFuncType, Function::ExternalLinkage, "printf", F.getParent());
 
                 // ASSEMBLY
-                // Define the assembly instruction as a string
-                StringRef asmInstruction = "$0 = add $1, $2";
-
-                // Define the constraints for the operands
-                StringRef constraints = "=r,r,r";
-
-                // Define the operands (registers or values)
-                Value *op1 = builder.getInt32(10);
-                Value *op2 = builder.getInt32(20);
 
                 // Create a vector of operands
-                std::vector<Value *> operands = {nullptr, op1, op2};
-
                 // Create the inline assembly instruction
-                InlineAsm *inlineAsm = InlineAsm::get(
-                    FunctionType::get(op1->getType(), {op1->getType(), op2->getType()}, false),
-                    asmInstruction,
-                    constraints,
-                    true, // Can throw
-                    false, // Can't side-effect
-                    InlineAsm::AD_Intel
-                );
-                Value *result = builder.CreateCall(inlineAsm, operands, "asm_result");
+                // InlineAsm *loadHPCVal = InlineAsm::get(
+                //     FunctionType::get(Type::getVoidTy(F.getContext()), false),
+                //     "li a5, 420",
+                //     "",
+                //     true // Can throw
+                // );
+                // builder.CreateCall(loadHPCVal, {});
+
+                // InlineAsm *startHPC = InlineAsm::get(
+                //     FunctionType::get(Type::getVoidTy(F.getContext()), false),
+                //     "csrr a5, time",
+                //     "",
+                //     true // Can throw
+                // );
+                // builder.CreateCall(startHPC, {});
+
+                // Allocate memory for the value read from CSR
+                AllocaInst *csrValuePtr = builder.CreateAlloca(builder.getInt64Ty(), nullptr, "csr_value");
+
+                // Inline assembly to read value from CSR directly into the variable
+                InlineAsm *readCSR = InlineAsm::get(
+                                FunctionType::get(Type::getInt64Ty(F.getContext()), false),
+                                "csrr $0, time",
+                                "=r",
+                                true // Can throw
+                            );
+                Value* csrValueBefore = builder.CreateCall(readCSR, {});
+
+                builder.CreateStore(csrValueBefore, csrValuePtr);
+
+                    // Load the value read from CSR
+                // Value *val = builder.CreateLoad(builder.getInt64Ty(), csrValueBefore);
+
+                // Call printf
+                Value *str = builder.CreateGlobalStringPtr("Before :: Value read from CSR: %lld\n");
+                builder.CreateCall(printfFunc, {str, csrValueBefore});
+
+
+                // Create the inline assembly
+                // FunctionCallee InlineAsmPrototype = F.getParent()->getOrInsertFunction(
+                //     "llvm.riscv.csrr",
+                //     Type::getInt32Ty(F.getContext()),
+                //     Type::getInt32Ty(F.getContext())
+                // );
+
+                // // Create the inline assembly function call
+                // Value *AsmCall = builder.CreateCall(
+                //     InlineAsmPrototype,
+                //     builder.getInt32(0x300), // mstatus CSR number
+                //     "csrr"
+                // );
+
+                // // Store the result in register a0
+                // Value* reg = builder.CreateAlloca(Type::getInt32Ty(F.getContext()), nullptr, "a0");
+                // builder.CreateStore(AsmCall, reg);
                 // ASSEMBLY
 
                 // Iterate over instructions in the last basic block
                 Instruction* returnInst = LastBB->getTerminator();
                 builder.SetInsertPoint(returnInst);
-                builder.CreateRet(ConstantInt::get(Type::getInt32Ty(F.getContext()), 42));
+
+
+                Value* csrValueAfter = builder.CreateCall(readCSR, {});
+
+                // Load the value read from CSR
+                // val = builder.CreateLoad(builder.getInt64Ty(), csrValueAfter);
+
+                // Call printf
+                Value *str2 = builder.CreateGlobalStringPtr("After :: Value read from CSR: %lld\n");
+                builder.CreateCall(printfFunc, {str2, csrValueAfter});
+
+                Value *str3 = builder.CreateGlobalStringPtr("Time taken in clock ticks: %lld\n");
+                Value *timeTaken = builder.CreateSub(csrValueAfter, csrValueBefore);
+                builder.CreateCall(printfFunc, {str3, timeTaken});
+
+                // builder.CreateRet(ConstantInt::get(Type::getInt32Ty(F.getContext()), 42));
 
             }
             return true;
