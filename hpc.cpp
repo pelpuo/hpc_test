@@ -15,10 +15,10 @@
 using namespace llvm;
 
 namespace{
-    struct SkeletonPass: public FunctionPass{
+    struct HPCenablePass: public FunctionPass{
         static char ID;
 
-        SkeletonPass() : FunctionPass(ID){}
+        HPCenablePass() : FunctionPass(ID){}
 
         virtual bool runOnFunction(Function &F){
             errs() << "I saw a function called " << F.getName() << "\n";
@@ -91,7 +91,7 @@ namespace RAIL{
 } //namespace RAIL
 
 
-char SkeletonPass::ID = 0;
+char HPCenablePass::ID = 0;
 
 int main(){
     InitializeNativeTarget();
@@ -103,7 +103,7 @@ int main(){
     std::unique_ptr<Module> Mod = RAIL::loadModule("something.ll", context, "File");
 
     legacy::PassManager PM;
-    PM.add(new SkeletonPass());
+    PM.add(new HPCenablePass());
     PM.run(*Mod);
 
     // outs() << "\n----------------------------------------------------------------\n";
