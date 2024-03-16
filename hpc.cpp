@@ -106,10 +106,6 @@ int main(){
     PM.add(new HPCenablePass());
     PM.run(*Mod);
 
-    // outs() << "\n----------------------------------------------------------------\n";
-    // errs() << *Mod->getFunction("main");
-    // outs() << "\n----------------------------------------------------------------\n";
-
     std::error_code EC;
     llvm::raw_fd_ostream outputFile("newsomething.ll", EC, llvm::sys::fs::OpenFlags::OF_None);
 
